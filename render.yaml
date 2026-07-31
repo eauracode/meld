@@ -1,0 +1,134 @@
+# MELD — Render Blueprint
+#
+# Deploys the NestJS API, its Postgres database, and all four Next.js apps
+# as separate Render services. Import at render.com → New → Blueprint,
+# pointing at the connected GitHub repo.
+#
+# Service name → URL mapping Render uses by default (no custom domain):
+#   meld-api       → https://meld-api.onrender.com
+#   meld-marketing → https://meld-marketing.onrender.com
+#   meld-merchant  → https://meld-merchant.onrender.com
+#   meld-rider     → https://meld-rider.onrender.com
+#   meld-ops       → https://meld-ops.onrender.com
+# If you rename a service or attach a custom domain, update the cross-app
+# URLs below (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_MERCHANT_APP_SIGNUP_URL) to match.
+#
+# Architecture (2026-07-30): NestJS + Prisma + Postgres, all on Render —
+# matches CashOS/Vendoor Africa, no Supabase (see 01_SHARED_FOUNDATIONS.md).
+#
+# Status as of this file's creation: apps/api exists but has never run
+# against a live database (pnpm install has been failing here due to local
+# network instability) and the four frontends still read from in-memory demo
+# stores (apps/*/src/lib/store.ts), not this API yet. This blueprint is
+# accurate for when both are done, not a claim that they are.
+#
+# Every envVar with `sync: false` must be set manually in the Render
+# dashboard after the first deploy (secrets are never committed).
+
+databases:
+  - name: meld-db
+    plan: starter
+    region: oregon
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: meld-api
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter api prisma:generate && pnpm --filter api build
+    startCommand: pnpm --filter api prisma:deploy && pnpm --filter api start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: meld-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PAYMENT_PROVIDER
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PREFERRED_BANK
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_WEBHOOK_SECRET_HASH
+        sync: false
+      - key: TERMII_API_KEY
+        sync: false
+      - key: TERMII_SENDER_ID
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+
+  - type: web
+    name: meld-marketing
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter marketing build
+    startCommand: pnpm --filter marketing start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://meld-marketing.onrender.com
+      - key: NEXT_PUBLIC_MERCHANT_APP_SIGNUP_URL
+        value: https://meld-merchant.onrender.com/signup
+      - key: NEXT_PUBLIC_MERCHANT_APP_SIGNIN_URL
+        value: https://meld-merchant.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        value: https://meld-api.onrender.com
+      # Left unset on purpose (02_PRD_Marketing FR-5) — riders apply via this
+      # site's own /riders form until the rider app has public sign-up.
+      - key: NEXT_PUBLIC_RIDER_APP_URL
+        sync: false
+      # Left unset → /demo shows the fallback contact form instead of a
+      # Calendly embed. Set once a booking link exists.
+      - key: NEXT_PUBLIC_DEMO_BOOKING_URL
+        sync: false
+
+  - type: web
+    name: meld-merchant
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter merchant build
+    startCommand: pnpm --filter merchant start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_URL
+        value: https://meld-api.onrender.com
+
+  - type: web
+    name: meld-rider
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter rider build
+    startCommand: pnpm --filter rider start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_URL
+        value: https://meld-api.onrender.com
+
+  - type: web
+    name: meld-ops
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter ops build
+    startCommand: pnpm --filter ops start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_URL
+        value: https://meld-api.onrender.com

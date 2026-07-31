@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* MELD "Bold Tech" tokens — source of truth: packages/ui/src/tokens.ts */
+@theme {
+  --color-ink: #0c1410;
+  --color-lime: #b6f542;
+  --color-green: #3f8a66;
+  --color-pine: #2e6b4f;
+  --color-mist: #f2f5f0;
+  --color-slate: #5f7d6e;
+  --color-muted-dark: #9db3a8;
+  --font-heading: "Century Schoolbook", Georgia, serif;
+  --font-body: Calibri, Arial, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-mist);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+  }
+}
