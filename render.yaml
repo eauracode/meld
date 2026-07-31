@@ -16,14 +16,21 @@
 # Architecture (2026-07-30): NestJS + Prisma + Postgres, all on Render —
 # matches CashOS/Vendoor Africa, no Supabase (see 01_SHARED_FOUNDATIONS.md).
 #
-# Status as of this file's creation: apps/api exists but has never run
-# against a live database (pnpm install has been failing here due to local
-# network instability) and the four frontends still read from in-memory demo
-# stores (apps/*/src/lib/store.ts), not this API yet. This blueprint is
-# accurate for when both are done, not a claim that they are.
+# Status (2026-07-31): apps/api runs against a live Render Postgres database
+# and all four frontends are wired to it (no more in-memory demo stores) —
+# verified end-to-end locally, including in real browsers. Not yet deployed
+# to Render itself; this blueprint is what deploying it means.
 #
 # Every envVar with `sync: false` must be set manually in the Render
 # dashboard after the first deploy (secrets are never committed).
+#
+# meld-api's buildCommand MUST run `pnpm build:api-kits` before `nest build`
+# — it bundles packages/{ledger,fees,payments,notifications} into
+# apps/api/src/kits/_bundled/*.mjs, which the compiled app dynamically
+# imports at runtime (see apps/api/src/kits/*-kit.ts). That directory is
+# gitignored (generated output), so without this step a fresh clone builds
+# "successfully" but the deployed app crashes on boot the moment anything
+# touches the ledger (LedgerService.onModuleInit() runs on every startup).
 
 databases:
   - name: meld-db
@@ -37,7 +44,7 @@ services:
     runtime: node
     plan: starter
     region: oregon
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter api prisma:generate && pnpm --filter api build
+    buildCommand: pnpm install --frozen-lockfile && pnpm build:api-kits && pnpm --filter api prisma:generate && pnpm --filter api build
     startCommand: pnpm --filter api prisma:deploy && pnpm --filter api start
     envVars:
       - key: NODE_VERSION
@@ -84,7 +91,7 @@ services:
       - key: NEXT_PUBLIC_MERCHANT_APP_SIGNIN_URL
         value: https://meld-merchant.onrender.com
       - key: NEXT_PUBLIC_API_URL
-        value: https://meld-api.onrender.com
+        value: https://meld-api.onrender.com/api
       # Left unset on purpose (02_PRD_Marketing FR-5) — riders apply via this
       # site's own /riders form until the rider app has public sign-up.
       - key: NEXT_PUBLIC_RIDER_APP_URL
@@ -105,7 +112,7 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: NEXT_PUBLIC_API_URL
-        value: https://meld-api.onrender.com
+        value: https://meld-api.onrender.com/api
 
   - type: web
     name: meld-rider
@@ -118,7 +125,7 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: NEXT_PUBLIC_API_URL
-        value: https://meld-api.onrender.com
+        value: https://meld-api.onrender.com/api
 
   - type: web
     name: meld-ops
@@ -131,4 +138,4 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: NEXT_PUBLIC_API_URL
-        value: https://meld-api.onrender.com
+        value: https://meld-api.onrender.com/api
