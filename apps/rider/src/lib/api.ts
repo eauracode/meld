@@ -74,7 +74,7 @@ export interface RiderProfile {
   bankName: string | null;
   bankAccountNo: string | null;
   status: RiderStatus;
-  user: { fullName: string; phone: string | null; email: string | null };
+  user: { fullName: string; phone: string | null; email: string | null; mustChangePassword: boolean };
 }
 
 export interface OrderItemRow {

@@ -1,6 +1,7 @@
 import { meldApi } from "@/lib/api";
-import { approveRiderApplication, rejectRiderApplication, setRiderState } from "@/lib/actions";
-import { Badge, Card, EmptyRow, PageHeader, Table, btnDanger, btnLime, btnOutline, inputCls, td } from "@/components/ui";
+import { setRiderState } from "@/lib/actions";
+import { Badge, Card, EmptyRow, PageHeader, Table, btnDanger, btnOutline, td } from "@/components/ui";
+import { PendingApplicationsList } from "@/components/pending-applications-list";
 
 export default async function RiderApprovals() {
   const [applications, riders] = await Promise.all([meldApi.riderApplications(), meldApi.ridersAll()]);
@@ -15,43 +16,7 @@ export default async function RiderApprovals() {
       />
 
       <Card title={`Applications to review (${applied.length})`}>
-        {applied.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate">No applications waiting.</p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {applied.map((a) => (
-              <div key={a.id} className="rounded-xl border border-slate/20 bg-mist/50 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="font-heading text-base font-bold text-ink">{a.fullName}</p>
-                    <p className="mt-1 text-sm text-slate">
-                      {a.phone} · {a.city}, {a.state}
-                    </p>
-                    <p className="text-sm text-slate">
-                      Vehicle: {a.vehicle} · Licence: {a.hasLicence ? "yes ✓" : "no — check!"}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <form action={approveRiderApplication} className="flex items-center gap-2">
-                      <input type="hidden" name="applicationId" value={a.id} />
-                      <input name="email" type="email" placeholder="Login email" className={`${inputCls} w-48`} required />
-                      <button type="submit" className={btnLime}>
-                        Approve &amp; invite
-                      </button>
-                    </form>
-                    <form action={rejectRiderApplication} className="flex items-center gap-2">
-                      <input type="hidden" name="applicationId" value={a.id} />
-                      <input name="reason" placeholder="Reject reason" className={`${inputCls} w-40`} />
-                      <button type="submit" className={btnDanger}>
-                        Reject
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <PendingApplicationsList applications={applied} />
       </Card>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">

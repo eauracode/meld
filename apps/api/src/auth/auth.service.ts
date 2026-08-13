@@ -1,9 +1,10 @@
-import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RegisterDto } from "./dto/register.dto";
 import type { LoginDto } from "./dto/login.dto";
+import type { ChangePasswordDto } from "./dto/change-password.dto";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -59,16 +60,35 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException("Invalid email or password");
 
-    return this.issueToken(user.id, user.role);
+    return { ...this.issueToken(user.id, user.role), mustChangePassword: user.mustChangePassword };
   }
 
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, role: true, fullName: true, email: true, phone: true },
+      select: { id: true, role: true, fullName: true, email: true, phone: true, mustChangePassword: true },
     });
     if (!user) throw new NotFoundException("User not found");
     return user;
+  }
+
+  /** Verifies the current password before setting a new one — required even for a forced first-time change, so a stolen session token alone can't silently take over the account. */
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) throw new BadRequestException("Current password is incorrect");
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BadRequestException("New password must be different from the current password");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: false },
+    });
+    return { ok: true };
   }
 
   private issueToken(userId: string, role: string) {

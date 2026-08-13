@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/nav";
 import { meldApi } from "@/lib/api";
 import { logout } from "@/lib/auth-actions";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const me = await meldApi.me();
+
+  if (me.user.mustChangePassword) {
+    redirect("/change-password");
+  }
 
   return (
     <div className="pb-20">

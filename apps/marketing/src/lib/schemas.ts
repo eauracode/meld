@@ -15,6 +15,7 @@ export const riderApplicationSchema = z.object({
     .string()
     .trim()
     .regex(/^[0-9+\-\s()]{7,20}$/, "Enter a valid phone number"),
+  email: z.string().trim().email("Enter a valid email — this is how you'll log in once approved"),
   city: z.string().trim().min(2, "Enter your city"),
   state: z.string().trim().min(2, "Select your state"),
   vehicle: vehicleTypeSchema,

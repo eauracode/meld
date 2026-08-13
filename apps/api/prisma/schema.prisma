@@ -155,14 +155,19 @@ enum NotificationChannel {
 // USERS  (replaces Supabase auth.users + profiles)
 // -----------------------------------------------------------------------
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  role         UserRole
-  fullName     String   @map("full_name")
-  phone        String?
-  email        String?  @unique
-  passwordHash String   @map("password_hash")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  role               UserRole
+  fullName           String   @map("full_name")
+  phone              String?
+  email              String?  @unique
+  passwordHash       String   @map("password_hash")
+  // True for accounts created with a known default password (currently just
+  // admin-approved riders — see RidersService.approve()) until they set
+  // their own. Self-registered accounts (merchant/ops) never set this since
+  // they chose their own password at signup.
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
 
   merchant Merchant?
   rider    Rider?
@@ -224,6 +229,10 @@ model RiderApplication {
   id           String      @id @default(uuid()) @db.Uuid
   fullName     String      @map("full_name")
   phone        String
+  // Required going forward (the marketing form now collects it) — nullable
+  // in the schema only so existing rows from before this column existed
+  // don't break; every new application always sets it.
+  email        String?
   city         String?
   state        String?
   vehicle      VehicleType

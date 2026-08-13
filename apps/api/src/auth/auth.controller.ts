@@ -5,6 +5,7 @@ import type { RequestUser } from "./jwt.strategy";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -24,5 +25,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: RequestUser) {
     return this.auth.me(user.userId);
+  }
+
+  @Post("change-password")
+  @UseGuards(JwtAuthGuard)
+  changePassword(@CurrentUser() user: RequestUser, @Body() dto: ChangePasswordDto) {
+    return this.auth.changePassword(user.userId, dto);
   }
 }

@@ -94,6 +94,7 @@ export interface RiderApplicationRow {
   id: string;
   fullName: string;
   phone: string;
+  email: string | null;
   city: string | null;
   state: string | null;
   vehicle: VehicleType;

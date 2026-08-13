@@ -18,6 +18,7 @@ type Step = 1 | 2 | 3;
 const initial: RiderApplicationInput = {
   fullName: "",
   phone: "",
+  email: "",
   city: "",
   state: "Lagos",
   vehicle: "bike",
@@ -45,7 +46,7 @@ export function RiderForm() {
     }
     const fieldErrors = result.error.flatten().fieldErrors;
     const relevant: (keyof RiderApplicationInput)[] =
-      current === 1 ? ["fullName", "phone", "city", "state"] : ["vehicle", "hasLicence"];
+      current === 1 ? ["fullName", "phone", "email", "city", "state"] : ["vehicle", "hasLicence"];
     const stepErrors: Partial<Record<keyof RiderApplicationInput, string>> = {};
     for (const key of relevant) {
       const msg = fieldErrors[key]?.[0];
@@ -134,6 +135,19 @@ export function RiderForm() {
             />
             {errors.phone ? <span className="text-xs font-semibold text-red-700">{errors.phone}</span> : null}
           </label>
+          <label className={labelCls}>
+            Email
+            <input
+              type="email"
+              className={inputCls}
+              value={values.email}
+              onChange={(e) => setValues((v) => ({ ...v, email: e.target.value }))}
+              autoComplete="email"
+              placeholder="you@example.com"
+            />
+            <span className="text-xs font-normal text-slate">This is how you'll sign in once MELD approves you.</span>
+            {errors.email ? <span className="text-xs font-semibold text-red-700">{errors.email}</span> : null}
+          </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelCls}>
               City
@@ -207,6 +221,8 @@ export function RiderForm() {
             <dd className="text-ink">{values.fullName}</dd>
             <dt className="text-slate">Phone</dt>
             <dd className="text-ink">{values.phone}</dd>
+            <dt className="text-slate">Email</dt>
+            <dd className="text-ink">{values.email}</dd>
             <dt className="text-slate">Location</dt>
             <dd className="text-ink">
               {values.city}, {values.state}

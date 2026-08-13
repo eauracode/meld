@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { Kobo } from "@meld/types";
-import { apiPost, nairaToKobo } from "./api";
+import { ApiError, apiPost, nairaToKobo } from "./api";
 
 function refresh(): void {
   revalidatePath("/", "layout");
@@ -29,12 +29,29 @@ export async function rejectMerchant(formData: FormData): Promise<void> {
   refresh();
 }
 
-export async function approveRiderApplication(formData: FormData): Promise<void> {
+export interface ApproveRiderResult {
+  error: string | null;
+  success: { email: string; initialPassword: string } | null;
+}
+
+export async function approveRiderApplication(
+  _prev: ApproveRiderResult,
+  formData: FormData,
+): Promise<ApproveRiderResult> {
   const id = String(formData.get("applicationId"));
-  const email = String(formData.get("email") ?? "").trim();
-  if (!email) throw new Error("An email is required to create the rider's login");
-  await apiPost(`/riders/applications/${id}/approve`, { email });
-  refresh();
+  try {
+    const result = await apiPost<{ rider: unknown; email: string; initialPassword: string }>(
+      `/riders/applications/${id}/approve`,
+      {}, // no override — backend defaults to the application's own stored email
+    );
+    refresh();
+    return { error: null, success: { email: result.email, initialPassword: result.initialPassword } };
+  } catch (e) {
+    return {
+      error: e instanceof ApiError ? e.message : "Could not approve this application.",
+      success: null,
+    };
+  }
 }
 
 export async function rejectRiderApplication(formData: FormData): Promise<void> {
