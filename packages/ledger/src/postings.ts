@@ -1,8 +1,22 @@
 import type { FeeBorneBy, Kobo } from "@meld/types";
 import { assertKobo, assertPositiveKobo, LedgerError } from "./money";
-import { splitDeliveryFee } from "./split";
 import { credit, debit } from "./post";
 import type { TransactionInput } from "./store";
+
+/**
+ * Splits a delivery fee between rider and MELD using two INDEPENDENT
+ * dispatcher-set numbers (not a fixed %, see `split.ts`'s `splitDeliveryFee`
+ * for the earlier automatic-split model, now unused by these builders).
+ * MELD keeps whatever remains after the rider's payout — never negative.
+ */
+function splitByRiderPayout(deliveryFeeKobo: Kobo, riderPayoutKobo: Kobo): { riderKobo: Kobo; meldKobo: Kobo } {
+  assertKobo(deliveryFeeKobo, "deliveryFeeKobo");
+  assertKobo(riderPayoutKobo, "riderPayoutKobo");
+  if (riderPayoutKobo > deliveryFeeKobo) {
+    throw new LedgerError("Rider payout cannot exceed the delivery fee");
+  }
+  return { riderKobo: riderPayoutKobo, meldKobo: deliveryFeeKobo - riderPayoutKobo };
+}
 
 /**
  * Posting builders — the canonical money movements from 01_SHARED_FOUNDATIONS §4.
@@ -24,9 +38,10 @@ export interface PrepaidConfirmedInput {
   orderValueKobo: Kobo;
   deliveryFeeKobo: Kobo;
   /** Who bears the fee (per-merchant setting). Affects what the customer pays
-   *  and what the merchant nets — never the 80/20 split itself. */
+   *  and what the merchant nets — never how the fee splits between rider/MELD. */
   feeBorneBy: FeeBorneBy;
-  riderShareBps?: number;
+  /** Dispatcher-set, independent of deliveryFeeKobo (must be ≤ it). MELD keeps the remainder. */
+  riderPayoutKobo: Kobo;
   createdBy?: string | null;
 }
 
@@ -34,7 +49,7 @@ export interface PrepaidConfirmedInput {
  * Prepaid delivery: customer paid into the delivery's virtual account.
  *   Dr partner float (total collected)
  *     Cr merchant payable (merchant's proceeds)
- *     Cr rider wallet (80% of fee)  /  Cr MELD revenue (20% of fee)
+ *     Cr rider wallet (dispatcher-set payout)  /  Cr MELD revenue (remainder)
  *
  * fee borne by customer → customer pays value + fee; merchant nets full value.
  * fee borne by merchant → customer pays value; merchant nets value − fee.
@@ -48,7 +63,7 @@ export function buildPrepaidConfirmedPosting(input: PrepaidConfirmedInput): {
   assertKobo(orderValueKobo, "orderValueKobo");
   assertKobo(deliveryFeeKobo, "deliveryFeeKobo");
 
-  const { riderKobo, meldKobo } = splitDeliveryFee(deliveryFeeKobo, input.riderShareBps);
+  const { riderKobo, meldKobo } = splitByRiderPayout(deliveryFeeKobo, input.riderPayoutKobo);
   const collectedKobo =
     feeBorneBy === "customer" ? orderValueKobo + deliveryFeeKobo : orderValueKobo;
   const merchantProceedsKobo =
@@ -78,7 +93,8 @@ export interface CodCashCollectedInput {
   /** Cash the customer handed to the rider. */
   cashAmountKobo: Kobo;
   deliveryFeeKobo: Kobo;
-  riderShareBps?: number;
+  /** Dispatcher-set, independent of deliveryFeeKobo (must be ≤ it). MELD keeps the remainder. */
+  riderPayoutKobo: Kobo;
   createdBy?: string | null;
 }
 
@@ -87,7 +103,7 @@ export interface CodCashCollectedInput {
  * the merchant is owed cash − fee (00_MASTER_PRD §4 Scenario B).
  *   Dr cash in transit (cash held by rider)
  *     Cr merchant payable (cash − fee)
- *     Cr rider wallet (80%)  /  Cr MELD revenue (20%)
+ *     Cr rider wallet (dispatcher-set payout)  /  Cr MELD revenue (remainder)
  */
 export function buildCodCashCollectedPosting(input: CodCashCollectedInput): {
   tx: TransactionInput;
@@ -100,7 +116,7 @@ export function buildCodCashCollectedPosting(input: CodCashCollectedInput): {
   if (merchantProceedsKobo < 0) {
     throw new LedgerError("Delivery fee exceeds cash collected on COD delivery");
   }
-  const { riderKobo, meldKobo } = splitDeliveryFee(deliveryFeeKobo, input.riderShareBps);
+  const { riderKobo, meldKobo } = splitByRiderPayout(deliveryFeeKobo, input.riderPayoutKobo);
 
   const tx: TransactionInput = {
     sourceType: "delivery",

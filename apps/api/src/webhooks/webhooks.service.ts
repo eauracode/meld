@@ -97,6 +97,9 @@ export class WebhooksService {
 
     const order = await this.prisma.order.findUnique({ where: { id: delivery.orderId } });
     if (!order) throw new Error(`Order for delivery ${delivery.id} not found`);
+    if (order.deliveryFeeKobo == null || order.riderPayoutKobo == null) {
+      throw new Error(`Order ${order.id} has no dispatcher-set delivery fee — cannot confirm payment`);
+    }
 
     const partnerFloat = await this.ledger.ensureAccount({ type: "partner_float", ownerType: "meld", ownerId: null });
     const meldRevenue = await this.ledger.ensureAccount({ type: "meld_revenue", ownerType: "meld", ownerId: null });
@@ -117,6 +120,7 @@ export class WebhooksService {
       deliveryId: delivery.id,
       orderValueKobo: Number(order.orderValueKobo),
       deliveryFeeKobo: Number(order.deliveryFeeKobo),
+      riderPayoutKobo: Number(order.riderPayoutKobo),
       feeBorneBy: order.feeBorneBy,
     });
     await this.ledger.post(tx);

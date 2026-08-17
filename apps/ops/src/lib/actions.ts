@@ -113,7 +113,11 @@ export async function adjustStock(formData: FormData): Promise<void> {
 export async function assignRider(formData: FormData): Promise<void> {
   const orderId = String(formData.get("orderId"));
   const riderId = String(formData.get("riderId"));
-  await apiPost("/deliveries/assign", { orderId, riderId });
+  const deliveryFeeKobo = nairaToKobo(String(formData.get("deliveryFeeNaira") ?? ""), "delivery fee");
+  const riderPayoutKobo = nairaToKobo(String(formData.get("riderPayoutNaira") ?? ""), "rider payout");
+  if (deliveryFeeKobo <= 0) throw new Error("Delivery fee must be greater than zero");
+  if (riderPayoutKobo > deliveryFeeKobo) throw new Error("Rider payout cannot exceed the delivery fee");
+  await apiPost("/deliveries/assign", { orderId, riderId, deliveryFeeKobo, riderPayoutKobo });
   refresh();
 }
 

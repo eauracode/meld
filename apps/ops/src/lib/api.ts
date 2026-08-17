@@ -157,7 +157,9 @@ export interface OrderRow {
   deliveryArea: string | null;
   orderValueKobo: Kobo;
   paymentType: PaymentType;
-  deliveryFeeKobo: Kobo;
+  /** Null until Ops sets it at assignment — no more automatic fee-rules resolution. */
+  deliveryFeeKobo: Kobo | null;
+  riderPayoutKobo: Kobo | null;
   feeBorneBy: FeeBorneBy;
   status: OrderStatus;
   createdAt: string;

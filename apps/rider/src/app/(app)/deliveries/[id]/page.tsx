@@ -66,7 +66,7 @@ export default async function DeliveryDetail({ params }: { params: Promise<{ id:
             <div className="flex justify-between">
               <dt className="text-slate">Delivery fee</dt>
               <dd className="tabular-nums font-semibold text-ink">
-                <Money kobo={order.deliveryFeeKobo} />
+                {order.deliveryFeeKobo != null ? <Money kobo={order.deliveryFeeKobo} /> : "Calculating"}
               </dd>
             </div>
             <div className="flex justify-between border-t border-slate/20 pt-1.5">
@@ -75,6 +75,15 @@ export default async function DeliveryDetail({ params }: { params: Promise<{ id:
                 <Money kobo={customerPays} />
               </dd>
             </div>
+            <div className="flex justify-between border-t border-slate/20 pt-1.5">
+              <dt className="text-slate">Your earning (expected)</dt>
+              <dd className="tabular-nums font-bold text-pine">
+                {order.riderPayoutKobo != null ? <Money kobo={order.riderPayoutKobo} /> : "—"}
+              </dd>
+            </div>
+            {order.riderPayoutKobo != null ? (
+              <p className="text-xs text-slate">Lands in your wallet once this delivery is paid for and completed.</p>
+            ) : null}
           </dl>
         </Card>
 

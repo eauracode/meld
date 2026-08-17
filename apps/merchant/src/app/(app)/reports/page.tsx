@@ -35,9 +35,7 @@ export default async function Reports() {
                 </td>
                 <td className={td}>{r.method}</td>
                 <td className={`${td} tabular-nums`}>{r.customerPaidKobo != null ? <Money kobo={r.customerPaidKobo} /> : "—"}</td>
-                <td className={`${td} tabular-nums`}>
-                  <Money kobo={r.feeKobo} />
-                </td>
+                <td className={`${td} tabular-nums`}>{r.feeKobo != null ? <Money kobo={r.feeKobo} /> : "Calculating"}</td>
                 <td className={`${td} tabular-nums font-semibold text-pine`}>
                   {r.netToMerchantKobo != null ? <Money kobo={r.netToMerchantKobo} /> : "—"}
                 </td>

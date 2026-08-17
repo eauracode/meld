@@ -1,6 +1,6 @@
 import { meldApi, orderRef } from "@/lib/api";
 import { assignRider } from "@/lib/actions";
-import { Badge, Card, EmptyRow, Money, PageHeader, Table, btnLime, selectCls, td } from "@/components/ui";
+import { Badge, Card, EmptyRow, Money, PageHeader, Table, btnLime, inputCls, selectCls, td } from "@/components/ui";
 
 export default async function Dispatch() {
   const [orders, riders] = await Promise.all([meldApi.ordersAll(), meldApi.ridersAll()]);
@@ -12,13 +12,13 @@ export default async function Dispatch() {
     <>
       <PageHeader
         title="Orders & dispatch"
-        sub="Manual dispatch (v1): pick an active rider for every order awaiting assignment. Rider, merchant, and customer are notified."
+        sub="Manual dispatch (v1): set the delivery fee and rider payout, then pick an active rider — for every order awaiting assignment. No fee is resolved automatically. Rider, merchant, and customer are notified."
       />
 
       <Card title={`Awaiting assignment (${queue.length})`}>
-        <Table head={["Order", "Merchant", "Customer", "Destination", "Value", "Fee", "Type", "Assign to"]}>
+        <Table head={["Order", "Merchant", "Customer", "Destination", "Value", "Type", "Set fee, payout & assign"]}>
           {queue.length === 0 ? (
-            <EmptyRow span={8} text="Dispatch queue is clear." />
+            <EmptyRow span={7} text="Dispatch queue is clear." />
           ) : (
             queue.map((o) => (
               <tr key={o.id}>
@@ -32,14 +32,33 @@ export default async function Dispatch() {
                   <Money kobo={o.orderValueKobo} />
                 </td>
                 <td className={td}>
-                  <Money kobo={o.deliveryFeeKobo} />
-                </td>
-                <td className={td}>
                   <Badge value={o.paymentType} />
                 </td>
                 <td className={td}>
-                  <form action={assignRider} className="flex items-center gap-2">
+                  <form action={assignRider} className="flex flex-wrap items-end gap-2">
                     <input type="hidden" name="orderId" value={o.id} />
+                    <label className="flex flex-col gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate">
+                      Fee (₦, merchant)
+                      <input
+                        name="deliveryFeeNaira"
+                        type="number"
+                        min={1}
+                        step="0.01"
+                        className={`${inputCls} w-24`}
+                        required
+                      />
+                    </label>
+                    <label className="flex flex-col gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate">
+                      Rider payout (₦)
+                      <input
+                        name="riderPayoutNaira"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className={`${inputCls} w-24`}
+                        required
+                      />
+                    </label>
                     <select name="riderId" className={selectCls} required>
                       {activeRiders.map((r) => (
                         <option key={r.id} value={r.id}>

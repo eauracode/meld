@@ -41,9 +41,20 @@ export default async function Today() {
               <div className="mt-2 flex items-center gap-2">
                 <Badge value={o.delivery?.status ?? "assigned"} />
                 <Badge value={o.paymentType === "cod" ? (o.delivery?.cashCollected ? "paid" : "unpaid") : (o.delivery?.paymentStatus ?? "unpaid")} />
-                <span className="ml-auto font-semibold tabular-nums text-ink">
-                  <Money kobo={o.orderValueKobo} />
+                <span className="ml-auto text-right">
+                  <span className="block text-xs text-slate">Order value</span>
+                  <span className="font-semibold tabular-nums text-ink">
+                    <Money kobo={o.orderValueKobo} />
+                  </span>
                 </span>
+                {o.riderPayoutKobo != null ? (
+                  <span className="text-right">
+                    <span className="block text-xs text-slate">You earn</span>
+                    <span className="font-bold tabular-nums text-pine">
+                      <Money kobo={o.riderPayoutKobo} />
+                    </span>
+                  </span>
+                ) : null}
               </div>
             </Link>
           ))

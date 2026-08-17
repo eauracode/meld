@@ -28,7 +28,13 @@ export class DeliveriesController {
   @Post("assign")
   @Roles("ops_agent", "ops_admin")
   assign(@Body() dto: AssignRiderDto, @CurrentUser() user: RequestUser) {
-    return this.deliveries.assign({ orderId: dto.orderId, riderId: dto.riderId, actorId: user.userId });
+    return this.deliveries.assign({
+      orderId: dto.orderId,
+      riderId: dto.riderId,
+      deliveryFeeKobo: dto.deliveryFeeKobo,
+      riderPayoutKobo: dto.riderPayoutKobo,
+      actorId: user.userId,
+    });
   }
 
   @Post(":id/accept")

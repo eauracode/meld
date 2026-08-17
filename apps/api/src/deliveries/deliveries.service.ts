@@ -26,8 +26,31 @@ export class DeliveriesService {
     private realtime: RealtimeGateway,
   ) {}
 
-  /** Mirrors assign_rider() — ops only, validates rider is active and order is awaiting_assignment. */
-  async assign(input: { orderId: string; riderId: string; actorId: string }) {
+  /**
+   * Mirrors assign_rider() — ops only, validates rider is active and order is
+   * awaiting_assignment. Dispatcher sets BOTH money numbers here, in the same
+   * action: deliveryFeeKobo (what the merchant/customer is charged) and
+   * riderPayoutKobo (what the rider earns) — two independent figures, not a
+   * fixed split. This is the one and only point an order's fee gets set; no
+   * automatic fee-rules resolution runs anymore.
+   */
+  async assign(input: {
+    orderId: string;
+    riderId: string;
+    deliveryFeeKobo: number;
+    riderPayoutKobo: number;
+    actorId: string;
+  }) {
+    if (!Number.isInteger(input.deliveryFeeKobo) || input.deliveryFeeKobo <= 0) {
+      throw new BadRequestException("deliveryFeeKobo must be a positive integer");
+    }
+    if (!Number.isInteger(input.riderPayoutKobo) || input.riderPayoutKobo < 0) {
+      throw new BadRequestException("riderPayoutKobo must be a non-negative integer");
+    }
+    if (input.riderPayoutKobo > input.deliveryFeeKobo) {
+      throw new BadRequestException("Rider payout cannot exceed the delivery fee");
+    }
+
     const rider = await this.prisma.rider.findUnique({ where: { id: input.riderId } });
     if (!rider || rider.status !== "active") {
       throw new BadRequestException("Rider must be active to receive assignments");
@@ -48,7 +71,14 @@ export class DeliveriesService {
           assignedAt: new Date(),
         },
       }),
-      this.prisma.order.update({ where: { id: input.orderId }, data: { status: "assigned" } }),
+      this.prisma.order.update({
+        where: { id: input.orderId },
+        data: {
+          status: "assigned",
+          deliveryFeeKobo: BigInt(input.deliveryFeeKobo),
+          riderPayoutKobo: BigInt(input.riderPayoutKobo),
+        },
+      }),
     ]);
 
     await this.audit.record({
@@ -168,6 +198,9 @@ export class DeliveriesService {
     if (!order) throw new NotFoundException("Order not found");
     if (order.paymentType !== "cod") throw new BadRequestException("Order is not cash-on-delivery");
     if (!delivery.riderId) throw new BadRequestException("Delivery has no assigned rider");
+    if (order.deliveryFeeKobo == null || order.riderPayoutKobo == null) {
+      throw new BadRequestException("Dispatcher has not set a delivery fee for this order yet");
+    }
 
     const cashInTransit = await this.ledger.ensureAccount({
       type: "cash_in_transit",
@@ -192,6 +225,7 @@ export class DeliveriesService {
       deliveryId,
       cashAmountKobo: amountKobo,
       deliveryFeeKobo: Number(order.deliveryFeeKobo),
+      riderPayoutKobo: Number(order.riderPayoutKobo),
     });
     await this.ledger.post(tx);
 

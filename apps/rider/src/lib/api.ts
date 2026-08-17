@@ -102,7 +102,12 @@ export interface OrderRow {
   items: OrderItemRow[];
   orderValueKobo: Kobo;
   paymentType: PaymentType;
-  deliveryFeeKobo: Kobo;
+  /** Null until Ops sets it — should be set by the time a rider sees this order (post-assignment). */
+  deliveryFeeKobo: Kobo | null;
+  /** What the rider will earn on this delivery, set by dispatch at assignment. Informational
+   *  until the delivery actually settles — real wallet money still lands via the existing
+   *  payment-gate/delivery-completion ledger flow, not the moment this is set. */
+  riderPayoutKobo: Kobo | null;
   feeBorneBy: FeeBorneBy;
   status: string;
   createdAt: string;
@@ -152,7 +157,7 @@ export function nairaToKobo(value: string, label = "amount"): Kobo {
 
 /** What the customer owes total for a prepaid delivery (goods + fee if fee is customer-borne). */
 export function customerOwesKobo(order: OrderRow): Kobo {
-  return order.feeBorneBy === "customer" ? order.orderValueKobo + order.deliveryFeeKobo : order.orderValueKobo;
+  return order.feeBorneBy === "customer" ? order.orderValueKobo + (order.deliveryFeeKobo ?? 0) : order.orderValueKobo;
 }
 
 export const meldApi = {

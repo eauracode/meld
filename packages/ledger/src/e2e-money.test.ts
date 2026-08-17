@@ -37,6 +37,7 @@ describe("end-to-end money scenario (prepaid + COD)", () => {
       deliveryId: "delivery_prepaid",
       orderValueKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
       feeBorneBy: "customer",
     });
     await postTransaction(store, prepaid.tx);
@@ -47,6 +48,7 @@ describe("end-to-end money scenario (prepaid + COD)", () => {
       deliveryId: "delivery_cod",
       cashAmountKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
     });
     await postTransaction(store, cod.tx);
 

@@ -16,6 +16,14 @@ export default async function Fees() {
         sub="Delivery fees resolve: per-merchant override → zone/state rule → fallback. Rules are versioned — new rules supersede, nothing is edited."
       />
 
+      <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+        Not currently applied to orders. Delivery fees are set manually per order on the{" "}
+        <a href="/dispatch" className="underline">
+          Dispatch
+        </a>{" "}
+        page instead — this table is kept for reference and in case automatic resolution is turned back on later.
+      </div>
+
       {!isAdmin ? (
         <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
           Fee changes require the ops_admin role. You are viewing as {me.role} (read-only).

@@ -1,28 +1,24 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { FeeRulesService } from "../fee-rules/fee-rules.service";
 import type { CreateOrderDto } from "./dto/create-order.dto";
 
 @Injectable()
 export class OrdersService {
-  constructor(
-    private prisma: PrismaService,
-    private feeRules: FeeRulesService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
+  /**
+   * Delivery fee is intentionally NOT resolved here — Ops (dispatch) sets it
+   * manually per order, together with the rider's payout, at assignment time
+   * (`DeliveriesService.assign`). The order is created with both left null;
+   * the merchant app shows "Calculating" until they're set.
+   */
   async createForMerchant(merchantId: string, dto: CreateOrderDto) {
     const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId } });
     if (!merchant) throw new NotFoundException("Merchant not found");
     if (merchant.status !== "approved") {
       throw new ForbiddenException("Merchant is not approved — cannot create live orders");
     }
-
-    const deliveryFeeKobo = await this.feeRules.resolveFee(
-      merchantId,
-      merchant.pickupState ?? dto.deliveryState,
-      dto.deliveryState,
-    );
 
     // Resolve product names up front (and confirm every item belongs to this merchant).
     const products = await this.prisma.product.findMany({
@@ -46,7 +42,6 @@ export class OrdersService {
           deliveryArea: dto.deliveryArea,
           orderValueKobo: BigInt(dto.orderValueKobo),
           paymentType: dto.paymentType,
-          deliveryFeeKobo: BigInt(deliveryFeeKobo),
           feeBorneBy: merchant.feeBorneBy,
           status: "awaiting_assignment",
         },

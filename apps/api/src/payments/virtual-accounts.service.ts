@@ -59,6 +59,9 @@ export class VirtualAccountsService {
       }
       const order = await this.prisma.order.findUnique({ where: { id: delivery.orderId } });
       if (!order) throw new NotFoundException("Order not found");
+      if (order.deliveryFeeKobo == null) {
+        throw new BadRequestException("Dispatcher has not set a delivery fee for this order yet");
+      }
       amountKobo =
         order.feeBorneBy === "customer"
           ? Number(order.orderValueKobo) + Number(order.deliveryFeeKobo)

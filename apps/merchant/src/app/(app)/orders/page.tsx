@@ -40,9 +40,7 @@ export default async function Orders() {
                 <td className={td}>
                   <Money kobo={o.orderValueKobo} />
                 </td>
-                <td className={td}>
-                  <Money kobo={o.deliveryFeeKobo} />
-                </td>
+                <td className={td}>{o.deliveryFeeKobo != null ? <Money kobo={o.deliveryFeeKobo} /> : "Calculating"}</td>
                 <td className={td}>
                   <Badge value={o.paymentType} />
                 </td>

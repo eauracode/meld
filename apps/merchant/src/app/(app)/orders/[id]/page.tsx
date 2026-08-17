@@ -12,8 +12,14 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   });
   const delivery = order.delivery;
 
-  const customerPays = order.orderValueKobo + (order.feeBorneBy === "customer" ? order.deliveryFeeKobo : 0);
-  const merchantNets = customerPays - order.deliveryFeeKobo;
+  const feeKnown = order.deliveryFeeKobo != null;
+  // Only known for certain right now if the fee doesn't affect it — e.g. a
+  // merchant-borne fee never changes what the customer pays.
+  const customerPays =
+    order.feeBorneBy === "customer" && !feeKnown
+      ? null
+      : order.orderValueKobo + (order.feeBorneBy === "customer" ? (order.deliveryFeeKobo ?? 0) : 0);
+  const merchantNets = feeKnown && customerPays != null ? customerPays - order.deliveryFeeKobo! : null;
   const settled = delivery?.paymentStatus === "paid";
   const method = order.paymentType === "cod" ? "cash (COD)" : "bank transfer";
 
@@ -77,7 +83,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             <div className="flex justify-between">
               <dt className="text-slate">Delivery fee (borne by {order.feeBorneBy})</dt>
               <dd className="font-semibold text-ink tabular-nums">
-                <Money kobo={order.deliveryFeeKobo} />
+                {order.deliveryFeeKobo != null ? <Money kobo={order.deliveryFeeKobo} /> : "Calculating"}
               </dd>
             </div>
             <div className="flex justify-between">
@@ -85,13 +91,13 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
                 {order.paymentType === "cod" ? "Cash the rider collects" : "Customer transfers"}
               </dt>
               <dd className="font-semibold text-ink tabular-nums">
-                <Money kobo={customerPays} />
+                {customerPays != null ? <Money kobo={customerPays} /> : "Calculating"}
               </dd>
             </div>
             <div className="mt-1 flex justify-between border-t border-slate/20 pt-2">
               <dt className="font-semibold text-ink">{settled ? "Credited to your balance" : "You are owed after delivery"}</dt>
               <dd className="font-bold text-pine tabular-nums">
-                <Money kobo={merchantNets} />
+                {merchantNets != null ? <Money kobo={merchantNets} /> : "Calculating"}
               </dd>
             </div>
             {settled ? <p className="text-xs text-slate">Paid by {method} ✓</p> : null}

@@ -3,19 +3,14 @@ import { Card, PageHeader } from "@/components/ui";
 import { OrderForm } from "@/components/order-form";
 
 export default async function NewOrder() {
-  const [me, feeRules, products, inventory] = await Promise.all([
-    meldApi.me(),
-    meldApi.feeRules(),
-    meldApi.products(),
-    meldApi.inventory(),
-  ]);
+  const [me, products, inventory] = await Promise.all([meldApi.me(), meldApi.products(), meldApi.inventory()]);
   const disabled = me.status !== "approved";
 
   return (
     <>
       <PageHeader
         title="Create order"
-        sub="The delivery fee and money breakdown resolve as you type — what you see is what the ledger will post."
+        sub="MELD dispatch sets your delivery fee once the order is assigned to a rider — the money breakdown below shows the final numbers as soon as that happens."
       />
       {disabled ? (
         <p className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
@@ -27,7 +22,6 @@ export default async function NewOrder() {
           merchantId={me.id}
           originState={me.pickupState ?? ""}
           feeBorneBy={me.feeBorneBy}
-          feeRules={feeRules}
           products={products.map((p) => ({
             id: p.id,
             sku: p.sku ?? "",

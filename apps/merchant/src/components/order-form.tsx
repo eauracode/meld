@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { resolveDeliveryFee } from "@meld/fees";
+import { useActionState, useState } from "react";
 import { formatKobo } from "@meld/ui";
-import type { FeeBorneBy, FeeRule, PaymentType } from "@meld/types";
+import type { FeeBorneBy, PaymentType } from "@meld/types";
 import { createOrder, type CreateOrderResult } from "@/lib/actions";
 import { btnLime, inputCls, selectCls } from "@/components/ui";
 
@@ -28,15 +27,15 @@ const NIGERIAN_STATES = [
 ];
 
 /**
- * Order creation with the money breakdown resolved LIVE as the merchant types
- * (03_PRD FR-3/FR-4). Fee resolution runs the real @meld/fees engine
- * client-side with the same rules the backend will apply at creation.
+ * Order creation. The delivery fee is no longer auto-resolved (03_PRD
+ * FR-3/FR-4 superseded): Ops (dispatch) sets it manually per order once it's
+ * assigned to a rider, so the money breakdown below shows "Calculating" for
+ * anything that depends on the fee until then.
  */
 export function OrderForm(props: {
   merchantId: string;
   originState: string;
   feeBorneBy: FeeBorneBy;
-  feeRules: FeeRule[];
   products: ProductOption[];
   disabled: boolean;
 }) {
@@ -48,24 +47,12 @@ export function OrderForm(props: {
   const [valueNaira, setValueNaira] = useState("");
   const [items, setItems] = useState<ItemRow[]>([{ productId: props.products[0]?.id ?? "", qty: 1 }]);
 
-  const feeKobo = useMemo(() => {
-    try {
-      return resolveDeliveryFee({
-        merchantId: props.merchantId,
-        originState: props.originState,
-        destinationState: destinationState || props.originState,
-        rules: props.feeRules,
-        defaultFeeKobo: 250_000,
-      }).feeKobo;
-    } catch {
-      return null;
-    }
-  }, [props.merchantId, props.originState, props.feeRules, destinationState]);
-
   const valueKobo = Math.round((Number(valueNaira) || 0) * 100);
-  const customerPays = feeKobo != null ? valueKobo + (props.feeBorneBy === "customer" ? feeKobo : 0) : null;
-  const merchantNets = feeKobo != null ? valueKobo - (props.feeBorneBy === "merchant" ? feeKobo : 0) : null;
-  const codNets = feeKobo != null && customerPays != null ? customerPays - feeKobo : null;
+  // The fee is unknown until dispatch sets it, so anything downstream of it
+  // is unknown too — except the two cases below that never touch the fee
+  // (mirrors the exact math in @meld/ledger's posting builders).
+  const customerPays = props.feeBorneBy === "customer" ? null : valueKobo;
+  const merchantOwed = paymentType === "prepaid" && props.feeBorneBy === "customer" ? valueKobo : null;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -192,24 +179,23 @@ export function OrderForm(props: {
         <dl className="mt-2 flex flex-col gap-1.5 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-dark">Delivery fee ({props.feeBorneBy === "customer" ? "customer pays" : "you pay"})</dt>
-            <dd className="font-bold text-lime tabular-nums">{feeKobo != null ? formatKobo(feeKobo) : "—"}</dd>
+            <dd className="font-bold text-lime tabular-nums">Calculating</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-dark">{paymentType === "cod" ? "Cash the rider collects" : "Customer transfers"}</dt>
-            <dd className="font-semibold text-white tabular-nums">{customerPays != null ? formatKobo(customerPays) : "—"}</dd>
+            <dd className="font-semibold text-white tabular-nums">
+              {customerPays != null ? formatKobo(customerPays) : "Calculating"}
+            </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-dark">You are owed after delivery</dt>
             <dd className="font-semibold text-white tabular-nums">
-              {paymentType === "cod"
-                ? codNets != null
-                  ? formatKobo(codNets)
-                  : "—"
-                : merchantNets != null
-                  ? formatKobo(merchantNets)
-                  : "—"}
+              {merchantOwed != null ? formatKobo(merchantOwed) : "Calculating"}
             </dd>
           </div>
+          <p className="mt-1 text-[11px] text-muted-dark">
+            MELD dispatch sets the delivery fee once your order is assigned to a rider — you&apos;ll see the final numbers here and on the order.
+          </p>
         </dl>
       </div>
 

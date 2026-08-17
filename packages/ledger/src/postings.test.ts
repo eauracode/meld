@@ -35,6 +35,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
       deliveryId: "d1",
       orderValueKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
       feeBorneBy: "customer",
     });
     expect(collectedKobo).toBe(2_200_000);
@@ -53,6 +54,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
       deliveryId: "d1",
       orderValueKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
       feeBorneBy: "merchant",
     });
     expect(collectedKobo).toBe(2_000_000);
@@ -69,6 +71,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
       deliveryId: "d2",
       cashAmountKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
     });
     expect(merchantProceedsKobo).toBe(1_800_000);
     await postTransaction(store, tx);
@@ -85,6 +88,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
       deliveryId: "d2",
       cashAmountKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
     });
     await postTransaction(store, cod.tx);
     await postTransaction(
@@ -105,6 +109,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
       deliveryId: "d1",
       orderValueKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
       feeBorneBy: "customer",
     });
     await postTransaction(store, prepaid.tx);
@@ -127,6 +132,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
         deliveryId: "d3",
         cashAmountKobo: 100_000,
         deliveryFeeKobo: 200_000,
+        riderPayoutKobo: 160_000,
       }),
     ).toThrow(/fee exceeds cash/i);
   });
@@ -137,6 +143,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
       deliveryId: "d1",
       orderValueKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
       feeBorneBy: "customer",
     });
     await postTransaction(store, prepaid.tx);
@@ -145,6 +152,7 @@ describe("canonical postings (01_SHARED_FOUNDATIONS §4)", () => {
       deliveryId: "d2",
       cashAmountKobo: 2_000_000,
       deliveryFeeKobo: 200_000,
+      riderPayoutKobo: 160_000,
     });
     await postTransaction(store, cod.tx);
     const { debits, credits } = store.totals();

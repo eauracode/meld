@@ -391,7 +391,12 @@ model Order {
   deliveryArea    String?     @map("delivery_area")
   orderValueKobo  BigInt      @map("order_value_kobo")
   paymentType     PaymentType @map("payment_type")
-  deliveryFeeKobo BigInt      @default(0) @map("delivery_fee_kobo")
+  // Null until Ops (dispatch) sets it manually — no more automatic fee-rules
+  // resolution at order-creation time. riderPayoutKobo is an independent
+  // number (not a fixed % of deliveryFeeKobo); MELD's revenue is whatever's
+  // left over (deliveryFeeKobo − riderPayoutKobo) once a delivery settles.
+  deliveryFeeKobo BigInt?     @map("delivery_fee_kobo")
+  riderPayoutKobo BigInt?     @map("rider_payout_kobo")
   feeBorneBy      FeeBorneBy  @map("fee_borne_by")
   status          OrderStatus @default(created)
   createdById     String?     @map("created_by") @db.Uuid

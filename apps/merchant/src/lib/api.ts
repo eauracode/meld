@@ -127,7 +127,8 @@ export interface OrderRow {
   items: OrderItemRow[];
   orderValueKobo: Kobo;
   paymentType: PaymentType;
-  deliveryFeeKobo: Kobo;
+  /** Null until Ops (dispatch) sets it — shown as "Calculating" until then. */
+  deliveryFeeKobo: Kobo | null;
   feeBorneBy: FeeBorneBy;
   status: OrderStatus;
   createdAt: string;
@@ -171,7 +172,8 @@ export interface BreakdownRow {
   paymentType: PaymentType;
   method: string;
   customerPaidKobo: Kobo | null;
-  feeKobo: Kobo;
+  /** Null until Ops sets the fee at assignment ("Calculating" in the UI). */
+  feeKobo: Kobo | null;
   netToMerchantKobo: Kobo | null;
   status: OrderStatus;
 }
@@ -180,7 +182,7 @@ export function breakdownRows(orders: OrderRow[]): BreakdownRow[] {
   return orders.map((o) => {
     const settled = o.delivery?.paymentStatus === "paid";
     const customerPaidKobo = settled
-      ? (o.delivery?.cashAmountKobo ?? o.orderValueKobo + (o.feeBorneBy === "customer" ? o.deliveryFeeKobo : 0))
+      ? (o.delivery?.cashAmountKobo ?? o.orderValueKobo + (o.feeBorneBy === "customer" ? (o.deliveryFeeKobo ?? 0) : 0))
       : null;
     return {
       ref: orderRef(o.id),
@@ -189,7 +191,8 @@ export function breakdownRows(orders: OrderRow[]): BreakdownRow[] {
       method: settled ? (o.paymentType === "cod" ? "cash" : "transfer") : "—",
       customerPaidKobo,
       feeKobo: o.deliveryFeeKobo,
-      netToMerchantKobo: settled && customerPaidKobo != null ? customerPaidKobo - o.deliveryFeeKobo : null,
+      netToMerchantKobo:
+        settled && customerPaidKobo != null && o.deliveryFeeKobo != null ? customerPaidKobo - o.deliveryFeeKobo : null,
       status: o.status,
     };
   });
